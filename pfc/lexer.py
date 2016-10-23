@@ -13,10 +13,15 @@ class Lexer:
 		for index, line in enumerate(stream):
 			yield index+1, line
 
-	def __isComment(self, line):
+	def __isComment(self, line, index):
 		c = line[0]
 		if c == 'C' or c == '*' or c == '!':
 			return True
+		if c not in Lexer.WHITESPACE:
+			io.error(index,
+				"Column 0 must be a whitespace \
+(found '{}' instead)".format(c))
+			self.errors += 1
 		return False
 
 	def pushToken(self, token, lineno):
@@ -27,12 +32,9 @@ class Lexer:
 	def lex(self, stream):
 		for index, line in self.__lineCount(stream):
 			if len(line) <= self.line_length:
-				if self.__isComment(line):
+				if self.__isComment(line, index):
 					continue
-				if line[0] not in Lexer.WHITESPACE:
-					io.error(index,
-						"colum 0 must be a whitespace")
-					self.errors += 1
+				print(line)
 			else:
 				io.error(index, "Line too long: {} > {}".format(
 					len(line), self.line_length))
