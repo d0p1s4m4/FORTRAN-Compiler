@@ -24,6 +24,9 @@ class Lexer:
 			self.errors += 1
 		return False
 
+	def __checkLineStart(self, line, lineno):
+		return True
+
 	def pushToken(self, token, lineno):
 		if not lineno in self.tokens:
 			self.tokens[lineno] = list()
@@ -35,6 +38,8 @@ class Lexer:
 				if self.__isComment(line, index):
 					continue
 				print(line)
+				if not self.__checkLineStart(line, lineno):
+					io.error(index, "Malformated line")
 			else:
 				io.error(index, "Line too long: {} > {}".format(
 					len(line), self.line_length))
