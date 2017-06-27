@@ -7,9 +7,9 @@ class Lexer:
 
     LINE_MAX_LENGTH = 72
     WHITESPACE = ' '
-    RE_VALID_CHAR = re.compile(r"^[0-9 A-Z*=/+.(),-]+$")
+    RE_VALID_CHAR = re.compile(r"^[0-9 A-Z*=/+.(),\"-]+$")
     RE_STATEMENT_NUMBER = re.compile(r"^(?:\s+)?([0-9]+)?(?:\s+)?$")
-    KEYWORDS = ["GO", "TO", "ASSIGN", "IF", "SENSE", "LIGHT", "ACCUMULATOR",
+    KEYWORDS = ["GOTO", "GO", "TO", "ASSIGN", "IF", "SENSE", "LIGHT", "ACCUMULATOR",
                 "OVERFLOW", "QUOTIENT", "DIVIDE", "CHECK", "PAUSE", "FORMAT",
                 "READ", "INPUT", "TAPE", "PUNCH", "PRINT", "WRITE", "DRUM",
                 "END", "FILE", "REWIND", "BACKSPACE", "CONTINUE", "DIMENSION",
@@ -49,8 +49,25 @@ class Lexer:
             self.__push_token(("LINE_CONTINUATION", None), stream)
 
     def __lex_statement(self, line: str, stream) -> None:
+        word = ""
         while len(line) > 0:
-            pass
+            for keyword in Lexer.KEYWORDS:
+                if line.startswith(keyword):
+                    if word != "":
+                        self.__push_token(("IDENT", word), stream)
+                        word = ""
+                    self.__push_token((keyword, None), stream)
+                    line = line[len(keyword):]
+            if len(line) > 0:
+                if line[0] not in [' ', '(', ')', ',']:
+                    word += line[0]
+                else:
+                    if word != "":
+                        self.__push_token(("IDENT", word), stream)
+                        word = ""
+                    if line[0] != ' ':
+                        self.__push_token((line[0], line[0]), stream)
+                line = line[1:]
 
     def lex(self, stream):
         for line in stream.read_line():
@@ -62,8 +79,9 @@ class Lexer:
             if not Lexer.RE_VALID_CHAR.match(line):
                 self.errors += 1
                 io.error(stream.file, stream.lineno, ERR_INCORRECT_CHAR)
-            if self.__is_comment(line, stream):
+            if self.__is_comment(line[0], stream):
                 continue
             self.__check_statement_number(line[1:5], stream)
             self.__check_continuation(line[6], stream)
             self.__lex_statement(line[7:], stream)
+        return self.tokens, self.errors
